@@ -1,11 +1,9 @@
 'use client'
 
-
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { MessageSquare, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react'
-
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,18 +12,45 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-
+  const [error, setError] = useState('')
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Please enter your email and password.')
+      return
+    }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1200))
-    if (role === 'admin') {
-      router.push('/admin')
-    } else {
-      router.push('/feed')
+    setError('')
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        setError(result.error || 'Login failed.')
+        setLoading(false)
+        return
+      }
+
+      // Save user info to localStorage
+      localStorage.setItem('user', JSON.stringify(result.data.user))
+      localStorage.setItem('college_id', result.data.user.college_id)
+
+      if (result.data.user.role === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/feed')
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
     }
   }
-
 
   return (
     <div style={{
@@ -33,7 +58,6 @@ export default function LoginPage() {
       background: 'var(--background)', padding: '24px',
       position: 'relative', overflow: 'hidden',
     }}>
-      {/* BG orbs */}
       <div style={{
         position: 'absolute', top: '10%', left: '5%',
         width: 400, height: 400, borderRadius: '50%',
@@ -46,7 +70,6 @@ export default function LoginPage() {
         background: 'radial-gradient(circle, rgba(255,101,132,0.1) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
-
 
       <div style={{ width: '100%', maxWidth: 440, position: 'relative' }}>
         {/* Logo */}
@@ -70,8 +93,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-
-        {/* Card */}
         <div className="glass" style={{ padding: '36px 32px' }}>
           {/* Role toggle */}
           <div style={{
@@ -91,8 +112,17 @@ export default function LoginPage() {
             ))}
           </div>
 
+          {/* Error */}
+          {error && (
+            <div style={{
+              marginBottom: 16, padding: '12px 16px', borderRadius: 10,
+              background: 'rgba(255,71,87,0.1)', border: '1px solid rgba(255,71,87,0.3)',
+              color: '#ff4757', fontSize: 13,
+            }}>
+              {error}
+            </div>
+          )}
 
-          {/* Fields */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>
@@ -111,7 +141,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 8 }}>
                 Password
@@ -125,6 +154,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   style={{ paddingLeft: 42, paddingRight: 42 }}
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
                 />
                 <button onClick={() => setShowPass(!showPass)} style={{
                   position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
@@ -134,14 +164,6 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-
-
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: 13, color: 'var(--primary)', cursor: 'pointer' }}>
-                Forgot password?
-              </span>
-            </div>
-
 
             <button
               className="btn-primary"
@@ -165,9 +187,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-
           <div className="divider" />
-
 
           <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-muted)' }}>
             New to CampusVoice?{' '}
@@ -177,8 +197,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-
-        {/* Anonymous note */}
         <div style={{
           marginTop: 20, textAlign: 'center',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -190,11 +208,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
   )
 }
-
